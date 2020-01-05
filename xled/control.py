@@ -147,6 +147,18 @@ class ControlInterface(object):
         url = urljoin(self.base_url, "fw/version")
         return self.session_get(url)
 
+    def get_brightness(self):
+        """
+        Gets current brightness level and if dimming is applied
+
+        :raises ApplicationError: on application error
+        :rtype: :class:`~xled.response.ApplicationResponse`
+        """
+        url = urljoin(self.base_url, "led/out/brightness")
+        app_response = self.session_get(url)
+        assert sorted(app_response.keys()) == [u"code", u"mode", u"value"]
+        return app_response
+
     def get_device_info(self):
         """
         Gets detailed information about device
@@ -232,7 +244,7 @@ class ControlInterface(object):
         """
         url = urljoin(self.base_url, "network/scan")
         app_response = self.session_get(url)
-        assert app_response.keys() == [u"code"]
+        assert list(app_response.keys()) == [u"code"]
 
     def network_scan_results(self):
         """
@@ -243,6 +255,23 @@ class ControlInterface(object):
         """
         url = urljoin(self.base_url, "network/scan_results")
         return self.session_get(url)
+
+    def set_brightness(self, brightness, enabled=True):
+        """
+        Sets new brightness
+
+        :param int brightness: new brightness in range of 0..100
+        :param bool enabled: set to False if the dimming should not be applied
+        :raises ApplicationError: on application error
+        :rtype: :class:`~xled.response.ApplicationResponse`
+        """
+        assert brightness in range(0, 101)
+        mode = "enabled" if enabled else "disabled"
+        json_payload = {"value": brightness, "mode": mode, "type": "A"}
+        url = urljoin(self.base_url, "led/out/brightness")
+        app_response = self.session_post(url, json=json_payload)
+        assert list(app_response.keys()) == [u"code"]
+        return app_response
 
     def set_device_name(self, name):
         """
@@ -256,7 +285,7 @@ class ControlInterface(object):
         json_payload = {"name": name}
         url = urljoin(self.base_url, "device_name")
         app_response = self.session_post(url, json=json_payload)
-        assert app_response.keys() == [u"code"]
+        assert list(app_response.keys()) == [u"code"]
 
     def set_led_movie_config(self, frame_delay, frames_number, leds_number):
         """
@@ -314,7 +343,7 @@ class ControlInterface(object):
         json_payload = {"mode": 2}
         url = urljoin(self.base_url, "network/status")
         app_response = self.session_post(url, json=json_payload)
-        assert app_response.keys() == [u"code"]
+        assert list(app_response.keys()) == [u"code"]
 
     def set_network_mode_station(self, ssid, password):
         """
@@ -333,7 +362,7 @@ class ControlInterface(object):
         }
         url = urljoin(self.base_url, "network/status")
         app_response = self.session_post(url, json=json_payload)
-        assert app_response.keys() == [u"code"]
+        assert list(app_response.keys()) == [u"code"]
 
     def set_timer(self, time_on, time_off, time_now=None):
         """
@@ -360,7 +389,7 @@ class ControlInterface(object):
         json_payload = {"time_on": time_on, "time_off": time_off, "time_now": time_now}
         url = urljoin(self.base_url, "timer")
         app_response = self.session_post(url, json=json_payload)
-        assert app_response.keys() == [u"code"]
+        assert list(app_response.keys()) == [u"code"]
 
 
 class HighControlInterface(ControlInterface):
