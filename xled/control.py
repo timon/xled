@@ -29,8 +29,8 @@ from requests.compat import urljoin
 import xled.util
 from xled.auth import BaseUrlChallengeResponseAuthSession
 from xled.compat import xrange
-from xled.exceptions import HighInterfaceError
-from xled.response import ApplicationResponse
+from xled.exceptions import HighInterfaceError, TokenExpiredError
+from xled.response import ApplicationResponse, HTTP_FORBIDDEN
 from xled.security import encrypt_wifi_password
 
 log = logging.getLogger(__name__)
@@ -71,6 +71,20 @@ class ControlInterface(object):
             )
             assert self._session
         return self._session
+
+    def session_get(self, url, retriable = True):
+        """
+        Performs a GET on url via a session.
+
+        If the response is 401 error, resets the session and tries again
+        """
+        response = self.session.get(url)
+
+        if response.status_code == HTTP_FORBIDDEN and retriable:
+            self._session = None
+            return self.session_get(url, retriable = False)
+        else:
+            return ApplicationResponse(response)
 
     def firmware_0_update(self, firmware):
         """
@@ -126,9 +140,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "fw/version")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
-        return app_response
+        return self.session_get(url)
 
     def get_device_info(self):
         """
@@ -138,9 +150,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "gestalt")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
-        return app_response
+        return self.session_get(url)
 
     def get_device_name(self):
         """
@@ -153,8 +163,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "device_name")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
+        app_response = self.session_get(url)
         assert sorted(app_response.keys()) == [u"code", u"name"]
         return app_response
 
@@ -166,9 +175,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "network/status")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
-        return app_response
+        return self.session_get(url)
 
     def get_mode(self):
         """
@@ -182,8 +189,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "led/mode")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
+        app_response = self.session_get(url)
         assert sorted(app_response.keys()) == [u"code", u"mode"]
         return app_response
 
@@ -198,8 +204,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "timer")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
+        app_response = self.session_get(url)
         assert sorted(app_response.keys()) == [u"time_now", u"time_off", u"time_on"]
         return app_response
 
@@ -211,8 +216,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "led/reset")
-        response = self.session.get(url)
-        return ApplicationResponse(response)
+        return self.session_get(url)
 
     def network_scan(self):
         """
@@ -222,8 +226,7 @@ class ControlInterface(object):
         :rtype: None
         """
         url = urljoin(self.base_url, "network/scan")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
+        app_response = self.session_get(url)
         assert app_response.keys() == [u"code"]
 
     def network_scan_results(self):
@@ -234,9 +237,7 @@ class ControlInterface(object):
         :rtype: :class:`~xled.response.ApplicationResponse`
         """
         url = urljoin(self.base_url, "network/scan_results")
-        response = self.session.get(url)
-        app_response = ApplicationResponse(response)
-        return app_response
+        return self.session_get(url)
 
     def set_device_name(self, name):
         """
