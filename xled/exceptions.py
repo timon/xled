@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-class XledException(IOError):
-    def __init__(self, *args, **kwargs):
-        super(XledException, self).__init__(*args, **kwargs)
+class XledException(Exception):
+    def __init__(self, *args):
+        super(XledException, self).__init__(*args)
 
 
 class ApplicationError(XledException):
@@ -13,7 +13,7 @@ class ApplicationError(XledException):
         """Initializes ApplicationError with `response` object."""
         response = kwargs.pop("response", None)
         self.response = response
-        super(ApplicationError, self).__init__(*args, **kwargs)
+        super(ApplicationError, self).__init__(*args)
 
 
 class ValidationError(XledException):
@@ -24,7 +24,7 @@ class AuthenticationError(XledException):
     """Authentication handshake wasn't successful"""
 
 
-class TokenExpiredError(XledException):
+class TokenExpiredError(ApplicationError):
     """Token is no longer valid"""
 
 
